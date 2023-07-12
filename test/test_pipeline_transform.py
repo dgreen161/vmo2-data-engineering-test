@@ -2,8 +2,8 @@ from tasks import PipelineTransform
 
 import unittest
 
+import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.io import ReadFromCsv
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 
@@ -20,7 +20,8 @@ class TestPipelineTransform(unittest.TestCase):
         with TestPipeline(options=options) as p: 
             transformations = (
                 p
-                | ReadFromCsv("test/test_data.csv")
+                | beam.io.ReadFromText("test/test_data.csv", skip_header_lines=True)
+                | 'Split CSV' >> beam.Map(lambda x: x.split(','))
                 | "Apply Transformations" >> PipelineTransform()
             )
 

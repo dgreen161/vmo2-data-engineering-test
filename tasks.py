@@ -3,7 +3,7 @@ import json
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.io import ReadFromCsv, WriteToText
+from apache_beam.io import WriteToText
 
 # Set runner to DirectRunner
 options = PipelineOptions(runner = 'DirectRunner')
@@ -17,8 +17,8 @@ def get_columns(element) -> dict:
     :return: Dictionary containing selected columns
     :rtype: dict
     """
-    date = datetime.strptime(element.timestamp, '%Y-%m-%d %H:%M:%S UTC').date()
-    transaction_amount = float(element.transaction_amount)
+    date = datetime.strptime(element[0], '%Y-%m-%d %H:%M:%S UTC').date()
+    transaction_amount = float(element[3])
     return {"date": date, "transaction_amount": transaction_amount}
 
 
@@ -83,7 +83,8 @@ def run_pipeline(input_file: str, output_file: str):
         # Load CSV, transform, and output the data to jsonl
         transformations = (
             p
-            | 'Read CSV' >> ReadFromCsv(input_file)
+            | 'Read CSV' >> beam.io.ReadFromText(input_file, skip_header_lines=True)
+            | 'Split CSV' >> beam.Map(lambda x: x.split(','))
             | 'Run transformations' >> PipelineTransform()
             | 'Write to JSONL' >> WriteToText(f'{output_file}', shard_name_template='', compression_type='gzip')
         )
